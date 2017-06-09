@@ -93,7 +93,13 @@
         $('#modal-success-buttons').show();
         $('#modal-fail-buttons').hide();
     });
+    function disable_btn(btn, disable) {
+        btn.prop('disabled', disable);
+        disable ? btn.attr('disabled', 'disabled') : btn.removeAttr('disabled');
+    }
     $(document).on('click', '#sendMessage', function() {
+        var submit_btn = $(this);
+        disable_btn(submit_btn, true);
         SelectBox.select_all('id_session_filter_to');
         SelectBox.select_all('id_course_filter_to');
         SelectBox.select_all('id_university_filter_to');
@@ -119,6 +125,7 @@
                 if (disabled) {
                     $('#id_subject').attr('disabled', 'disabled');
                 }
+                disable_btn(submit_btn, false);
             }
         });
     });
