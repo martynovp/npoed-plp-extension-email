@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2016-11-08 13:25+0300\n"
+"POT-Creation-Date: 2017-06-22 17:04+0300\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -19,10 +19,46 @@ msgstr ""
 "Plural-Forms: nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && n"
 "%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2);\n"
 
+msgid "Всем"
+msgstr ""
+
+msgid "Не включать преподавателей"
+msgstr ""
+
+msgid "Только преподавателям"
+msgstr ""
+
+msgid "По списку емейлов"
+msgstr ""
+
+msgid "По списку емейлов из файла"
+msgstr ""
+
+msgid "Отправить только себе"
+msgstr ""
+
+msgid "По фильтрам"
+msgstr ""
+
 msgid "Выберите шаблон или напишите письмо"
 msgstr ""
 
 msgid "Имейте в виду, что вы не сможете редактировать выбранный шаблон"
+msgstr ""
+
+msgid "Тип рассылки"
+msgstr ""
+
+msgid "Список емейлов"
+msgstr ""
+
+msgid "Рассылка по списку игнорируя фильтры. Каждый адрес с новой строки."
+msgstr ""
+
+msgid "Список емейлов plaintext"
+msgstr ""
+
+msgid "Список емейлов, разделенных точкой с запятой или переводом строки"
 msgstr ""
 
 msgid "Сессии"
@@ -37,7 +73,7 @@ msgstr ""
 msgid "Курс"
 msgstr ""
 
-msgid "Отправить письмо подписанным на новости курсов"
+msgid "Отправить письмо подписанным на новости курсов или записанным на них"
 msgstr ""
 
 msgid "Вузы"
@@ -51,11 +87,11 @@ msgid ""
 "вузов"
 msgstr ""
 
-msgid "Отправить только себе"
-msgstr ""
-
 msgid ""
 "Вы получите письмо при отправке только себе даже если вы отписаны от рассылки"
+msgstr ""
+
+msgid "Отфильтровать преподавателей"
 msgstr ""
 
 msgid "Дата последнего входа от"
@@ -95,6 +131,19 @@ msgid ""
 "Если оба - то всем пользователям, получившим сертификат"
 msgstr ""
 
+msgid "Это поле оязательно."
+msgstr ""
+
+msgid "Файл не содержит данных или некорректен"
+msgstr ""
+
+#, python-format
+msgid "Следующие емейлы некорректны: %s"
+msgstr ""
+
+msgid "Значение не должно состоять из одних пробелов"
+msgstr ""
+
 msgid "Некорректный HTML текст письма"
 msgstr ""
 
@@ -121,6 +170,12 @@ msgid "HTML письма"
 msgstr ""
 
 msgid "Текст письма"
+msgstr ""
+
+msgid "Отправка подтверждена"
+msgstr ""
+
+msgid "Количество получателей"
 msgstr ""
 
 msgid "Рассылка"
@@ -164,6 +219,15 @@ msgid ""
 "перейдите <a href=\"{2}\">по ссылке</a></p>"
 msgstr ""
 
+msgid "Это поле обязательно."
+msgstr ""
+
+msgid "Во время выполнения запроса произошла ошибка"
+msgstr ""
+
+msgid "Сообщения успешно отправлены"
+msgstr ""
+
 msgid "Фильтры"
 msgstr ""
 
@@ -185,10 +249,10 @@ msgstr ""
 msgid "Нет"
 msgstr ""
 
-msgid "Во время выполнения запроса произошла ошибка"
+msgid "Закрыть"
 msgstr ""
 
-msgid "Сообщения успешно отправлены"
+msgid "Включить/выключить редактор"
 msgstr ""
 
 #, python-format
@@ -206,16 +270,16 @@ msgid ""
 "\"%(courses_url)s\">мои курсы</a>."
 msgstr ""
 
-msgid ""
-"Вы уверены, что хотите отправить это сообщение себе? Для того, чтобы "
-"отправить сообщение другим пользователям, уберите галочку с \"Отправить "
-"только себе\""
+msgid "Вы уверены, что хотите отправить это сообщение себе?"
 msgstr ""
 
 #, python-format
 msgid ""
 "Вы хотите отправить письмо с темой \"%(theme)s\" всем пользователям. "
 "Продолжить?"
+msgstr ""
+
+msgid "Ошибка коммуникации с EDX"
 msgstr ""
 
 #, python-format
@@ -228,3 +292,30 @@ msgid_plural ""
 msgstr[0] ""
 msgstr[1] ""
 msgstr[2] ""
+
+#, python-brace-format
+msgid ""
+"Письмо с темой \"{subject}\" было отправлено пользователем {user} "
+"{user_count} пользователю {hours_ago} {minutes_ago} назад. Хотите отправить "
+"еще раз?"
+msgid_plural ""
+"Письмо с темой \"{subject}\" было отправлено пользователем {user} "
+"{user_count} пользователям {hours_ago} {minutes_ago} назад. Хотите отправить "
+"еще раз?"
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
+
+#, python-brace-format
+msgid "{counter} час"
+msgid_plural "{counter} часов"
+msgstr[0] "{counter} час"
+msgstr[1] "{counter} часа"
+msgstr[2] "{counter} часов"
+
+#, python-brace-format
+msgid "{counter} минуту"
+msgid_plural "{counter} минут"
+msgstr[0] "{counter} минуту"
+msgstr[1] "{counter} минуты"
+msgstr[2] "{counter} минут"

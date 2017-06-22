@@ -8,8 +8,9 @@
 <script type="text/javascript" src="{% static "tiny_mce/tiny_mce.js" %}"></script>
 <script type="text/javascript">
     $ = jQuery.noConflict();
-    var current_emails_file;
+    var current_emails_file, email_item_id;
     var tinymce_is_hidden = false;
+    var required_msg = "{% blocktrans %}Это поле обязательно.{% endblocktrans %}";
     function filter_change_visibility(type, hide) {
         $('[data-field-type="' + type + '"]').each(function(i, el) {
             if (hide) {
@@ -37,15 +38,92 @@
             filter_change_visibility(state);
     }
     check_selector_state();
+
+    function is_valid(e) {
+        if (e == undefined) {
+            var v = validate_subject();
+            v = validate_filter_type() && v;
+            v = validate_html_message() && v;
+            v = validate_emails_list() && v;
+            v = validate_emails() && v;
+            return v;
+        }
+        switch ($(e.target).attr('name')) {
+            case 'subject':
+                validate_subject();
+                break;
+            case 'filter_type':
+                validate_filter_type();
+                break;
+            case 'html_message':
+                validate_html_message();
+                break;
+            case 'emails_list':
+                validate_emails_list();
+                break;
+            case 'emails':
+                validate_emails();
+                break;
+        }
+    }
+    function validate_subject() {
+        var field = $('#id_subject');
+        var val = field.val();
+        !val.trim().length ? add_error(field, required_msg) : remove_error(field);
+        return !!val.trim().length;
+    }
+    function validate_filter_type() {
+        var field = $('#id_filter_type');
+        var invalid = !$('#id_filter_type input:checked').length;
+        invalid ? add_error(field, required_msg) : remove_error(field);
+        return !invalid;
+    }
+    function validate_html_message() {
+        var field = $('#id_html_message');
+        var is_hidden = tinymce_is_hidden;
+        if (is_hidden) toggleTinyMce('id_html_message');
+        var invalid = !tinymce.get('id_html_message').getBody().textContent.length;
+        invalid ? add_error(field, required_msg) : remove_error(field);
+        if (is_hidden) toggleTinyMce('id_html_message');
+        return !invalid;
+    }
+    function validate_emails_list() {
+        var field = $('#id_emails_list');
+        var filled = !!field.val().trim();
+        var required = $('input[name=filter_type][value=email]:checked').length;
+        var valid = required ? filled : true;
+        valid ? remove_error(field) : add_error(field, required_msg);
+        return valid
+    }
+    function validate_emails() {
+        var field = $('#id_emails');
+        var filled = !!field.val();
+        var required = $('input[name=filter_type][value=file]:checked').length;
+        var valid = required ? filled : true;
+        valid ? remove_error(field) : add_error(field, required_msg);
+        return valid;
+    }
+    function add_error(field, error) {
+        if (field.parents('div.form-row').hasClass('errors'))
+            return;
+        field.parents('div.form-row').addClass('errors').children('div').append('<ul class="errorlist"><li>' + error + '</li></ul>');
+    }
+    function remove_error(field) {
+        field.parents('div.form-row').removeClass('errors').children('div').find('ul.errorlist').remove();
+    }
+    $(document).delegate('#massNewsForm :input', 'change input', is_valid);
     $(document).on('submit', '#massNewsForm', function (e) {
         e.preventDefault();
+        if (!is_valid()) {
+            $('body').animate({scrollTop: $('.form-row.errors').first().position().top - $('.global-header').height()});
+            return;
+        }
         if(!tinymce_is_hidden) {
             updateTinyMce('id_html_message');
         }
         $('#id_subject').removeAttr('disabled');
         $('#submitForm').button('loading');
         var formData = new FormData(this);
-        formData.append('_check_users_count', '1');
         current_emails_file = $('#id_emails');
         $.ajax({
             url: $(this).attr('action'),
@@ -67,6 +145,9 @@
                     $('body').animate({scrollTop: $('.form-row.errors').first().position().top - $('.global-header').height()});
                     $('#id_emails').replaceWith(current_emails_file);
                     return;
+                }
+                if (data['item_id']) {
+                    email_item_id = data['item_id'];
                 }
                 var msg = data['message'];
                 $('#modalDialog div.modal-body').html('<p>' + msg + '</p>');
@@ -100,20 +181,13 @@
     $(document).on('click', '#sendMessage', function() {
         var submit_btn = $(this);
         disable_btn(submit_btn, true);
-        SelectBox.select_all('id_session_filter_to');
-        SelectBox.select_all('id_course_filter_to');
-        SelectBox.select_all('id_university_filter_to');
         var disabled = $('#id_subject').attr('disabled');
         if (disabled)
             $('#id_subject').removeAttr('disabled');
-        var form = $('#massNewsForm');
-        var formData = new FormData(form[0]);
         $.ajax({
-            url: $(form).attr('action'),
-            type: $(form).attr('method'),
-            data: formData,
-            processData: false,
-            contentType: false,
+            url: "{% url 'from-support-confirm' %}",
+            type: "POST",
+            data: {item_id: email_item_id},
             success: function (data) {
                 $('#modalDialog').modal('hide');
                 alert("{% blocktrans %}Сообщения успешно отправлены{% endblocktrans %}");
@@ -122,10 +196,7 @@
                 alert("{% blocktrans %}Во время выполнения запроса произошла ошибка{% endblocktrans %}");
             },
             complete: function(xhr, status) {
-                if (disabled) {
-                    $('#id_subject').attr('disabled', 'disabled');
-                }
-                disable_btn(submit_btn, false);
+                window.location.reload();
             }
         });
     });
@@ -133,8 +204,9 @@
         var val = $(e.target).val();
         if (val) {
             $.post("{% url 'support_mail_template' %}", {id: val}, function(data) {
-                $('#id_subject').val(data['subject']);
+                $('#id_subject').val(data['subject']).trigger('change');
                 tinyMCE.get('id_html_message').setContent(data['html_message'], {format: 'html'});
+                $('#id_html_message').trigger('change');
                 template_selected_handler(true);
             });
         }
@@ -200,6 +272,11 @@
             width: '100%',
             height: '300px',
             plugins: 'fullpage, legacyoutput',
+            setup: function (editor) {
+                editor.onChange.add(function(ed, e) {
+                    $('#' + ed.id).trigger('change');
+                })
+            }
           });
     }
     init_redactor();

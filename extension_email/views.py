@@ -6,7 +6,9 @@ from django.core.urlresolvers import reverse_lazy
 from django.http import Http404, JsonResponse
 from django.shortcuts import render
 from django.template.loader import get_template
+from django.utils import timezone
 from django.utils.translation import ugettext as _, ungettext
+from django.views.decorators.http import require_POST
 from django.views.generic import CreateView
 from rest_framework import status
 from rest_framework.response import Response
@@ -14,7 +16,7 @@ from rest_framework.views import APIView
 from api.views.user import ApiKeyPermission
 from plp.models import User
 from .forms import BulkEmailForm
-from .models import BulkEmailOptout, SupportEmailTemplate
+from .models import BulkEmailOptout, SupportEmailTemplate, SupportEmail
 from .tasks import support_mass_send
 from .utils import filter_users
 
@@ -38,46 +40,82 @@ class FromSupportView(CreateView):
         return ['extension_email/main_miptx.html']
 
     def form_valid(self, form):
-        self.object = form.save(commit=False)
-        self.object.sender = self.request.user
-        self.object.target = form.to_json()
-        self.object.save()
-        support_mass_send.delay(self.object)
-        return JsonResponse({'redirect_url': self.get_success_url()})
-
-    def post(self, request, *args, **kwargs):
-        form = self.get_form()
-        form_html = get_template('extension_email/_message_form.html').render(context={'form': form}, request=request)
-        if form.is_valid():
-            if '_check_users_count' in request.POST:
-                item = form.save(commit=False)
-                item.sender = self.request.user
-                item.target = form.to_json()
-                users, msg_type = filter_users(item)
-                error = False
-                if msg_type == 'to_myself':
-                    msg = _(u'Вы уверены, что хотите отправить это сообщение себе?')
-                elif msg_type == 'to_all':
-                    msg = _(u'Вы хотите отправить письмо с темой "%(theme)s" всем пользователям. Продолжить?') % \
-                          {'theme': item.subject}
-                elif msg_type == 'error':
-                    msg = _(u'Ошибка коммуникации с EDX')
-                    error = True
-                else:
-                    msg = ungettext(
-                        u'Вы хотите отправить письмо с темой "%(theme)s" %(user_count)s пользователю. Продолжить?',
-                        u'Вы хотите отправить письмо с темой "%(theme)s" %(user_count)s пользователям. Продолжить?',
-                        users.count()
-                    ) % {'theme': item.subject, 'user_count': users.count()}
-                return JsonResponse({
-                    'form': form_html,
-                    'valid': True,
-                    'message': msg,
-                    'error': error,
-                })
-            return self.form_valid(form)
+        item = form.save(commit=False)
+        item.sender = self.request.user
+        item.target = form.to_json()
+        item.confirmed = False
+        users, msg_type = filter_users(item)
+        error = False
+        if msg_type == 'to_myself':
+            msg = _(u'Вы уверены, что хотите отправить это сообщение себе?')
+            item.to_myself = True
+        elif msg_type == 'to_all':
+            msg = _(u'Вы хотите отправить письмо с темой "%(theme)s" всем пользователям. Продолжить?') % \
+                  {'theme': item.subject}
+        elif msg_type == 'error':
+            msg = _(u'Ошибка коммуникации с EDX')
+            error = True
         else:
-            return JsonResponse({'form': form_html, 'valid': False})
+            msg = ungettext(
+                u'Вы хотите отправить письмо с темой "%(theme)s" %(user_count)s пользователю. Продолжить?',
+                u'Вы хотите отправить письмо с темой "%(theme)s" %(user_count)s пользователям. Продолжить?',
+                users.count()
+            ) % {'theme': item.subject, 'user_count': users.count()}
+        if not error and msg_type != 'to_myself':
+            now = timezone.now()
+            existing = SupportEmail.objects.filter(
+                subject=item.subject,
+                confirmed=True,
+                to_myself=False,
+                modified__gt=now - timezone.timedelta(hours=24)
+            ).order_by('-created').first()
+            if existing:
+                user_count = existing.recipients_number or 0
+                delta = now - existing.modified
+                hours_ago = delta.seconds / 3600
+                minutes_ago = (delta - hours_ago * timezone.timedelta(hours=1)).seconds / 60
+                msg = ungettext(
+                    u'Письмо с темой "{subject}" было отправлено пользователем {user} {user_count} пользователю '
+                    u'{hours_ago} {minutes_ago} назад. Хотите отправить еще раз?',
+                    u'Письмо с темой "{subject}" было отправлено пользователем {user} {user_count} пользователям '
+                    u'{hours_ago} {minutes_ago} назад. Хотите отправить еще раз?',
+                    user_count).format(**{
+                        'subject': item.subject,
+                        'user': existing.sender.username,
+                        'user_count': user_count,
+                        'hours_ago': ungettext(u'{counter} час', u'{counter} часов', hours_ago).format(counter=hours_ago),
+                        'minutes_ago': ungettext(u'{counter} минуту', u'{counter} минут', minutes_ago).format(counter=minutes_ago)
+                    })
+        if not error:
+            item.save()
+        return JsonResponse({
+            'item_id': item.id,
+            'valid': True,
+            'message': msg,
+            'error': error,
+        })
+
+    def form_invalid(self, form):
+        form_html = get_template('extension_email/_message_form.html').render(
+            context={'form': form}, request=self.request
+        )
+        return JsonResponse({'form': form_html, 'valid': False})
+
+
+@require_POST
+def confirm_sending(request):
+    if not request.user.is_staff:
+        raise Http404
+    try:
+        item = SupportEmail.objects.get(id=request.POST.get('item_id'))
+        assert item.sender == request.user
+        assert not item.confirmed
+    except (SupportEmail.DoesNotExist, ValueError, AssertionError) as e:
+        return JsonResponse({'status': 1}, status=status.HTTP_400_BAD_REQUEST)
+    item.confirmed = True
+    item.save()
+    support_mass_send.delay(item.id)
+    return JsonResponse({'status': 0})
 
 
 def unsubscribe(request, hash_str):

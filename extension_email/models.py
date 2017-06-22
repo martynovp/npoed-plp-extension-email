@@ -15,6 +15,9 @@ class SupportEmail(models.Model):
     subject = models.CharField(max_length=128, blank=True, verbose_name=_(u'Тема'))
     html_message = models.TextField(null=True, blank=True, verbose_name=_(u'HTML письма'))
     text_message = models.TextField(null=True, blank=True, verbose_name=_(u'Текст письма'))
+    confirmed = models.BooleanField(verbose_name=_(u'Отправка подтверждена'), default=True)
+    recipients_number = models.IntegerField(verbose_name=_(u'Количество получателей'), default=None, null=True)
+    to_myself = models.BooleanField(default=False, verbose_name=_(u'Сообщение только себе'))
     created = models.DateTimeField(auto_now_add=True)
     modified = models.DateTimeField(auto_now=True)
 
