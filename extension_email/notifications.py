@@ -5,6 +5,7 @@ from django.core.urlresolvers import reverse
 from django.template import Template, Context
 from django.utils.translation import ugettext_lazy as _
 from plp.notifications.base import MassSendEmails
+from .models import SupportEmail
 
 
 class BulkEmailSend(MassSendEmails):
@@ -21,6 +22,7 @@ class BulkEmailSend(MassSendEmails):
     def get_emails(self):
         recipients = self.obj.get_recipients()
         self.email_to_user = dict([(i.email, i) for i in recipients])
+        SupportEmail.objects.filter(id=self.obj.id).update(recipients_number=len(self.email_to_user))
         return self.email_to_user.keys()
 
     def get_subject(self, email=None):
