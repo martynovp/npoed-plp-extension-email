@@ -10,7 +10,7 @@ from django.template import Template, Context
 from django.urls import reverse
 from django.utils.translation import ugettext_lazy as _
 from post_office.mail import send
-from npoed_massmail.base import MassSendEmails
+from tp_massmail.base import MassSendEmails
 from plp.models import User
 from plp.utils.helpers import get_prefix_and_site
 from .models import EmailRelated, SupportEmail, SupportEmailStatus

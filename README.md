@@ -1,1 +1,1 @@
-# npoed-plp-extension-email
+# tp-plp-extension-email
